@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YTM Lyrics to SRT</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f5f5f5; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; font-size: 1.4rem; text-align: center; }
+        input, button { width: 100%; padding: 12px; margin-top: 10px; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; font-size: 1rem; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #0056b3; }
+        textarea { width: 100%; height: 250px; margin-top: 15px; box-sizing: border-box; padding: 10px; font-family: monospace; font-size: 0.9rem; border-radius: 4px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>YouTube Music SRT変換</h2>
+    <input type="text" id="url_input" placeholder="YouTube MusicのURL、またはビデオIDを入力">
+    <button id="convert_btn" py-click="convert_lyrics">SRTに変換</button>
+    <textarea id="output" placeholder="ここにSRTが出力されます" readonly></textarea>
+</div>
+
+<py-config>
+    packages = ["ytmusicapi"]
+</py-config>
+
+<py-script>
+import datetime
+import re
+from ytmusicapi import YTMusic
+from js import document
+
+def extract_video_id(input_str):
+    """URLまたは文字列から11文字のビデオIDを抽出する"""
+    input_str = input_str.strip()
+    # 通常のURL、MusicのURL、短縮URLなどに対応する正規表現
+    regex = r'(?:v=|\/v\/|youtu\.be\/|\/embed\/|\/watch\?v=|\/watch\?.+&v=)([^#\&\?]{11})'
+    match = re.search(regex, input_str)
+    if match:
+        return match.group(1)
+    elif len(input_str) == 11:
+        return input_str
+    return None
+
+def format_time(ms):
+    if ms is None or ms < 0: ms = 0
+    td = datetime.timedelta(milliseconds=ms)
+    total_seconds = int(td.total_seconds())
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    milliseconds = int(ms % 1000)
+    return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
+
+def convert_lyrics(event):
+    input_val = document.getElementById("url_input").value
+    output_element = document.getElementById("output")
+    
+    video_id = extract_video_id(input_val)
+    
+    if not video_id:
+        output_element.value = "有効なURLまたはビデオIDが見つかりませんでした。"
+        return
+        
+    output_element.value = f"ビデオID [{video_id}] を検出しました。解析中...\n※初回はライブラリの読み込みに数十秒かかる場合があります。"
+    
+    yt = YTMusic()
+    try:
+        watch_playlist = yt.get_watch_playlist(videoId=video_id)
+        lyrics_browse_id = watch_playlist.get("lyrics")
+        if not lyrics_browse_id:
+            output_element.value = f"ビデオID: {video_id}\nエラー: この楽曲には歌詞データが存在しません。"
+            return
+            
+        lyrics_data = yt.get_lyrics(browseId=lyrics_browse_id, timestamps=True)
+        
+        srt_content = ""
+        for i, line in enumerate(lyrics_data.lyrics):
+            start_ms = line.start_time
+            end_ms = line.end_time or (start_ms + 3000)
+            
+            start_srt = format_time(start_ms)
+            end_srt = format_time(end_ms)
+            
+            srt_content += f"{i + 1}\n{start_srt} --> {end_srt}\n{line.text}\n\n"
+            
+        output_element.value = srt_content
+    except Exception as e:
+        output_element.value = f"エラーが発生しました:\n{str(e)}\n\n※ブラウザのCORS制限、またはYouTube側からのアクセス遮断の可能性があります。"
+</py-script>
+
+</body>
+</html>
