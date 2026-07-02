@@ -44,11 +44,11 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        if [ -f index.html ]; then
-          git add index.html
-          git commit -m "Update lyrics for ${{ github.event.inputs.ytm_url }} with delay ${{ github.event.inputs.delay_sec }}s" || echo "No changes to commit"
+        if [ -f result.html ]; then
+          git add result.html
+          git commit -m "Update lyrics result" || echo "No changes to commit"
           git push origin HEAD:${{ github.ref }}
         else
-          echo "Error: index.html was not generated."
+          echo "Error: result.html was not generated."
           exit 1
         fi
