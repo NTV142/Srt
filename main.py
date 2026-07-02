@@ -34,29 +34,60 @@ def main():
     yt = YTMusic()
     
     try:
+        print("プレイリスト情報を取得中...")
         watch_playlist = yt.get_watch_playlist(videoId=video_id)
         lyrics_browse_id = watch_playlist.get("lyrics")
         if not lyrics_browse_id:
-            print("エラー: 歌詞データが存在しません。")
+            print("エラー: この楽曲には歌詞データ（メニュー自体）が存在しません。")
             return
             
-        lyrics_data = yt.get_lyrics(browseId=lyrics_browse_id, timestamps=True)
+        print(f"歌詞データを要求中... (BrowseID: {lyrics_browse_id})")
+        lyrics_data = yt.get_lyrics(browseId=lyrics_browse_id)
         
-        # 辞書型（dict）から安全に歌詞リストを取得するよう修正
-        lines = lyrics_data.get("lyrics", [])
-        if not lines:
-            print("エラー: 歌詞のテキストデータが空、または同期歌詞ではありません。")
-            return
-        
+        # ログに取得したデータの型を出力して追跡できるようにする
+        print(f"取得データの型: {type(lyrics_data)}")
+        print(f"取得データの中身のキー一覧: {lyrics_data.keys() if isinstance(lyrics_data, dict) else 'Not a dict'}")
+
         srt_content = ""
-        for i, line in enumerate(lines):
-            # 各行のデータも辞書型なので get() で安全に取得
-            start_ms = line.get("start_time", 0)
-            end_ms = line.get("end_time") or (start_ms + 3000)
-            text = line.get("text", "")
-            
-            srt_content += f"{i + 1}\n{format_time(start_ms)} --> {format_time(end_ms)}\n{text}\n\n"
         
+        # パターン1: 辞書型で辞書内に 'lyrics' のリスト（タイムスタンプ付き）がある場合
+        if isinstance(lyrics_data, dict) and "lyrics" in lyrics_data and isinstance(lyrics_data["lyrics"], list):
+            print("同期歌詞（タイムスタンプ付きリスト）を検出しました。")
+            lines = lyrics_data["lyrics"]
+            for i, line in enumerate(lines):
+                if isinstance(line, dict):
+                    start_ms = line.get("start_time", 0)
+                    end_ms = line.get("end_time") or (start_ms + 3000)
+                    text = line.get("text", "")
+                else:
+                    start_ms = i * 3000
+                    end_ms = start_ms + 3000
+                    text = str(line)
+                srt_content += f"{i + 1}\n{format_time(start_ms)} --> {format_time(end_ms)}\n{text}\n\n"
+        
+        # パターン2: 単なる1枚の長文テキスト（タイムスタンプなし歌詞）しか返ってこない場合
+        elif isinstance(lyrics_data, dict) and "lyrics" in lyrics_data and isinstance(lyrics_data["lyrics"], str):
+            print("通常の歌詞（プレーンテキスト）を検出しました。3秒ごとに疑似分割します。")
+            plain_text = lyrics_data["lyrics"]
+            lines = [line.strip() for line in plain_text.split("\n") if line.strip()]
+            for i, line_text in enumerate(lines):
+                start_ms = i * 3000
+                end_ms = start_ms + 3000
+                srt_content += f"{i + 1}\n{format_time(start_ms)} --> {format_time(end_ms)}\n{line_text}\n\n"
+                
+        else:
+            print("未知のデータ構造です。テキスト抽出を試みます。")
+            text_data = lyrics_data.get("lyrics", "") if isinstance(lyrics_data, dict) else str(lyrics_data)
+            lines = [l.strip() for l in str(text_data).split("\n") if l.strip()]
+            for i, line_text in enumerate(lines):
+                start_ms = i * 3000
+                end_ms = start_ms + 3000
+                srt_content += f"{i + 1}\n{format_time(start_ms)} --> {format_time(end_ms)}\n{line_text}\n\n"
+
+        if not srt_content.strip():
+            print("エラー: SRTに変換できる歌詞テキストがありませんでした。")
+            return
+
         with open("lyrics.srt", "w", encoding="utf-8") as f:
             f.write(srt_content)
         
@@ -86,7 +117,7 @@ def main():
         print("インデックスHTMLとSRTの生成に成功しました。")
 
     except Exception as e:
-        print(f"実行エラー: {e}")
+        print(f"スクリプト実行中に予期せぬエラーが発生しました: {e}")
 
 if __name__ == "__main__":
     main()
