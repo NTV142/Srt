@@ -2,67 +2,96 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>YTM Lyrics Result</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YTM LRC 歌詞抽出コントローラー</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
-        .box { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        textarea { width: 100%; height: 400px; font-family: monospace; padding: 10px; margin-top: 10px; box-sizing: border-box; white-space: pre; }
+        body { font-family: sans-serif; padding: 20px; background: #fafafa; color: #333; line-height: 1.5; }
+        .box { max-width: 600px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        h2 { margin-top: 0; font-size: 1.3rem; text-align: center; }
+        .form-group { margin-top: 12px; }
+        label { font-size: 0.9rem; font-weight: bold; color: #555; display: block; margin-bottom: 4px; }
+        input, button { width: 100%; padding: 12px; box-sizing: border-box; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; }
+        input:focus { border-color: #007bff; outline: none; }
+        button { background-color: #111; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 15px; }
+        button:hover { background-color: #333; }
+        .status { margin-top: 15px; font-size: 0.9rem; color: #666; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h2>取得完了 (ID: F8e2ohz1Jwg)</h2>
-        <p>以下のテキストをコピーして使用してください。</p>
-        <textarea readonly>[00:00.000]跳ねた跳ねた 僕は跳ねた
-[00:03.000]Whoa 小学生みたいに
-[00:06.000]雨上がりの夜に跳ねた
-[00:09.000]Whoa 水切りみたいに
-[00:12.000](ミテイタフリシテ)
-[00:15.000]Whoa 明日を素通り
-[00:18.000](ヨルニニゲタダケ)
-[00:21.000]Whoa 朝を素通り
-[00:24.000]跳ねた跳ねた 君も跳ねた
-[00:27.000]Whoa 女学生みたいに
-[00:30.000]水たまりの上で跳ねた
-[00:33.000]Whoa あめんぼみたいに
-[00:36.000](ワスレタフリシテ)
-[00:39.000]Whoa それはつまり
-[00:42.000](ヨルニニゲタダケ)
-[00:45.000]どこへ行こう どこへ行こう
-[00:48.000]ここに居ようとしてる?
-[00:51.000]逃げるよ 逃げるよ あと少しだけ
-[00:54.000]消えた消えた 君が消えた
-[00:57.000]Whoa 蜃気楼みたいに
-[01:00.000]にわか雨の音も消えた
-[01:03.000]Whoa さよなら言うように
-[01:06.000](キコエタフリシテ)
-[01:09.000]Whoa 君の言う通り
-[01:12.000](ヨルニニゲタダケ)
-[01:15.000]どこへ行こう どこへ行こう
-[01:18.000]ここに居ようとしてる?
-[01:21.000]逃げても 逃げても
-[01:24.000]音はもうしなくて
-[01:27.000]雨になって何分か後に行く
-[01:30.000]今泣いて何分か後に行く
-[01:33.000]今泣いて何分か後の自分
-[01:36.000]Whoa, oh, oh, whoa, oh, oh
-[01:39.000]今泣いて何分か後に行く
-[01:42.000]今泣いて何分か後に言う
-[01:45.000]今泣いて何年か後の自分
-[01:48.000]Whoa, oh, oh, whoa, oh, oh
-[01:51.000]行けるよ 行けるよ
-[01:54.000]遠くへ行こうとしてる
-[01:57.000]イメージしよう イメージしよう
-[02:00.000]自分が思うほうへ
-[02:03.000]雨になって何分か後に行く
-[02:06.000]今泣いて何分か後に行く
-[02:09.000]今泣いて何分か後の自分
-[02:12.000]Whoa, oh, oh, whoa, oh, oh
-[02:15.000]今泣いて何分か後に言う
-[02:18.000]今泣いて何年か後の自分
-[02:21.000]Whoa, oh, oh, whoa, oh, oh
-[02:24.000]笑っていたいだろう
-</textarea>
+
+<div class="box">
+    <h2>YouTube Music LRC変換</h2>
+    <p style="font-size:0.85rem; color:#666; text-align:center;">URLを入力して実行すると、裏で自動ビルドが始まります。</p>
+    
+    <div class="form-group">
+        <label for="url_input">YouTube MusicのURL、またはビデオID</label>
+        <input type="text" id="url_input" placeholder="https://music.youtube.com/watch?v=...">
     </div>
+
+    <div class="form-group">
+        <label for="delay_input">遅延させる秒数</label>
+        <input type="number" id="delay_input" value="24">
+    </div>
+
+    <div class="form-group">
+        <label for="token_input">GitHub パーソナルアクセストークン (PAT)</label>
+        <input type="password" id="token_input" placeholder="github_pat_...">
+    </div>
+
+    <button id="convert_btn" onclick="triggerWorkflow()">この設定でLRCを生成する</button>
+    
+    <div id="status_msg" class="status"></div>
+</div>
+
+<script>
+async function triggerWorkflow() {
+    const url = document.getElementById("url_input").value.trim();
+    const delay = document.getElementById("delay_input").value.trim();
+    const token = document.getElementById("token_input").value.trim();
+    const status = document.getElementById("status_msg");
+
+    if (!url || !token) {
+        status.innerText = "❌ URLとGitHubトークンを入力してください。";
+        return;
+    }
+
+    status.innerText = "🚀 裏側で自動処理(Actions)を起動中...";
+
+    // あなたのリポジトリ情報に書き換えてください
+    const OWNER = "NTV142";
+    const REPO = "Srt"; 
+    const WORKFLOW_ID = "run.yml"; 
+
+    const reqUrl = `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW_ID}/dispatches`;
+
+    try {
+        const response = await fetch(reqUrl, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Accept": "application/vnd.github+v3+json",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                ref: "main", // ブランチ名がマスターなら master に変更
+                inputs: {
+                    ytm_url: url,
+                    delay_sec: delay
+                }
+            })
+        });
+
+        if (response.status === 204) {
+            status.innerHTML = "⏳ 起動成功！約30〜40秒後に歌詞が生成されます。<br>処理が終わる頃にこのページを再読み込み(リフレッシュ)してください。";
+        } else {
+            const errData = await response.json();
+            status.innerText = `❌ 起動失敗: ${errData.message}`;
+        }
+    } catch (e) {
+        status.innerText = `❌ エラーが発生しました: ${e.message}`;
+    }
+}
+</script>
+
 </body>
 </html>
