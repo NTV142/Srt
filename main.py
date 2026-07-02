@@ -20,7 +20,6 @@ def format_time(ms):
     return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
 
 def main():
-    # GitHubの環境変数、または手動テスト用のテキストからURL/IDを取得
     target_input = os.environ.get("YTM_URL", "").strip()
     if not target_input:
         print("エラー: YTM_URL が指定されていません。")
@@ -43,17 +42,24 @@ def main():
             
         lyrics_data = yt.get_lyrics(browseId=lyrics_browse_id, timestamps=True)
         
-        srt_content = ""
-        for i, line in enumerate(lyrics_data.lyrics):
-            start_ms = line.start_time
-            end_ms = line.end_time or (start_ms + 3000)
-            srt_content += f"{i + 1}\n{format_time(start_ms)} --> {format_time(end_ms)}\n{line.text}\n\n"
+        # 辞書型（dict）から安全に歌詞リストを取得するよう修正
+        lines = lyrics_data.get("lyrics", [])
+        if not lines:
+            print("エラー: 歌詞のテキストデータが空、または同期歌詞ではありません。")
+            return
         
-        # 成果物として成果を保存
+        srt_content = ""
+        for i, line in enumerate(lines):
+            # 各行のデータも辞書型なので get() で安全に取得
+            start_ms = line.get("start_time", 0)
+            end_ms = line.get("end_time") or (start_ms + 3000)
+            text = line.get("text", "")
+            
+            srt_content += f"{i + 1}\n{format_time(start_ms)} --> {format_time(end_ms)}\n{text}\n\n"
+        
         with open("lyrics.srt", "w", encoding="utf-8") as f:
             f.write(srt_content)
         
-        # GitHub Pagesで見えるようにHTMLを書き換える
         html_template = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -61,8 +67,8 @@ def main():
     <title>YTM Lyrics Result</title>
     <style>
         body {{ font-family: sans-serif; padding: 20px; background: #f5f5f5; }}
-        .box {{ max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }}
-        textarea {{ width: 100%; height: 400px; font-family: monospace; }}
+        .box {{ max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+        textarea {{ width: 100%; height: 400px; font-family: monospace; padding: 10px; margin-top: 10px; box-sizing: border-box; }}
     </style>
 </head>
 <body>
@@ -84,4 +90,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
