@@ -21,7 +21,7 @@
 
 <div class="box">
     <h2>YouTube Music LRC変換</h2>
-    <p style="font-size:0.85rem; color:#666; text-align:center;">URLを入力して実行すると、裏で自動ビルドが始まります。</p>
+    <p style="font-size:0.85rem; color:#666; text-align:center;">URLを入力して実行すると、裏で自動処理が始まります。</p>
     
     <div class="form-group">
         <label for="url_input">YouTube MusicのURL、またはビデオID</label>
@@ -35,7 +35,7 @@
 
     <div class="form-group">
         <label for="token_input">GitHub パーソナルアクセストークン (PAT)</label>
-        <input type="password" id="token_input" placeholder="github_pat_...">
+        <input type="password" id="token_input" placeholder="github_pat_...（お使いのPC内に暗号化されず保存されます）">
     </div>
 
     <button id="convert_btn" onclick="triggerWorkflow()">この設定でLRCを生成する</button>
@@ -44,6 +44,14 @@
 </div>
 
 <script>
+// ページ読み込み時に、前回入力したトークンがあれば自動復元する
+window.onload = function() {
+    const savedToken = localStorage.getItem("gh_pat_lrc");
+    if (savedToken) {
+        document.getElementById("token_input").value = savedToken;
+    }
+}
+
 async function triggerWorkflow() {
     const url = document.getElementById("url_input").value.trim();
     const delay = document.getElementById("delay_input").value.trim();
@@ -55,9 +63,11 @@ async function triggerWorkflow() {
         return;
     }
 
+    // トークンをブラウザのローカルストレージに保存（コードには残らない）
+    localStorage.setItem("gh_pat_lrc", token);
+
     status.innerText = "🚀 裏側で自動処理(Actions)を起動中...";
 
-    // あなたのリポジトリ情報に書き換えてください
     const OWNER = "NTV142";
     const REPO = "Srt"; 
     const WORKFLOW_ID = "run.yml"; 
@@ -73,7 +83,7 @@ async function triggerWorkflow() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                ref: "main", // ブランチ名がマスターなら master に変更
+                ref: "main",
                 inputs: {
                     ytm_url: url,
                     delay_sec: delay
@@ -82,7 +92,7 @@ async function triggerWorkflow() {
         });
 
         if (response.status === 204) {
-            status.innerHTML = "⏳ 起動成功！約30〜40秒後に歌詞が生成されます。<br>処理が終わる頃にこのページを再読み込み(リフレッシュ)してください。";
+            status.innerHTML = "⏳ 起動成功！約30〜40秒後に歌詞が生成されます。<br>処理が終わる頃にURLの末尾を <b>/result.html</b> に変えてアクセスしてください。";
         } else {
             const errData = await response.json();
             status.innerText = `❌ 起動失敗: ${errData.message}`;
