@@ -27,22 +27,20 @@ def main():
         delay_ms = 0
 
     if not target_input:
-        print("エラー: YTM_URL が指定されていません。")
+        print("環境変数 YTM_URL がありません。")
         return
 
     video_id = extract_video_id(target_input)
     if not video_id:
-        print("エラー: 有効なビデオIDが見つかりません。")
+        print("ビデオIDが不正です。")
         return
 
-    print(f"Target Video ID: {video_id} (Delay: {delay_sec_str}s)")
     yt = YTMusic()
     
     try:
         watch_playlist = yt.get_watch_playlist(videoId=video_id)
         lyrics_browse_id = watch_playlist.get("lyrics")
         if not lyrics_browse_id:
-            print("エラー: 歌詞データが存在しません。")
             return
             
         lyrics_data = yt.get_lyrics(browseId=lyrics_browse_id)
@@ -65,10 +63,6 @@ def main():
                 start_ms = (i * 3000) + delay_ms
                 lrc_content += f"{format_lrc_time(start_ms)}{line_text}\n"
 
-        if not lrc_content.strip():
-            print("エラー: 歌詞テキストが空でした。")
-            return
-
         html_template = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -78,27 +72,26 @@ def main():
         body {{ font-family: sans-serif; padding: 20px; background: #fafafa; color: #333; }}
         .box {{ max-width: 600px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }}
         h2 {{ margin-top: 0; font-size: 1.3rem; text-align: center; }}
-        .info {{ font-size: 0.9rem; color: #666; margin-bottom: 10px; background: #eee; padding: 8px; border-radius: 4px; }}
-        textarea {{ width: 100%; height: 400px; font-family: monospace; padding: 12px; margin-top: 10px; box-sizing: border-box; border: 1px solid #ddd; background: #f9f9f9; white-space: pre; }}
+        textarea {{ width: 100%; height: 400px; font-family: monospace; padding: 12px; margin-top: 10px; box-sizing: border-box; border: 1px solid #ddd; background: #f9f9f9; }}
+        .back-btn {{ display: block; text-align: center; margin-top: 15px; color: #007bff; text-decoration: none; font-size: 0.9rem; }}
     </style>
 </head>
 <body>
     <div class="box">
         <h2>取得完了</h2>
-        <div class="info">🎵 ビデオID: {video_id}<br>⏳ 遅延設定: {delay_sec_str} 秒</div>
         <p>以下のLRCテキストをコピーして使用してください。</p>
         <textarea readonly>{lrc_content}</textarea>
+        <a class="back-btn" href="./index.html">⬅ 入力画面に戻る</a>
     </div>
 </body>
 </html>"""
         
-        with open("index.html", "w", encoding="utf-8") as f:
+        # 既存のindex.htmlを壊さないように、結果は result.html に書き出す
+        with open("result.html", "w", encoding="utf-8") as f:
             f.write(html_template)
-            
-        print("インデックスHTMLの生成に成功しました。")
 
     except Exception as e:
-        print(f"スクリプト実行中に予期せぬエラーが発生しました: {e}")
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     main()
