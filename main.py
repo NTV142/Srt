@@ -35,12 +35,20 @@ def main():
         print("ビデオIDが不正です。")
         return
 
+    print(f"Target Video ID: {video_id}")
     yt = YTMusic()
     
     try:
         watch_playlist = yt.get_watch_playlist(videoId=video_id)
-        lyrics_browse_id = watch_playlist.get("lyrics")
+        
+        # 確実に辞書型データからキーを安全に取得
+        if isinstance(watch_playlist, dict):
+            lyrics_browse_id = watch_playlist.get("lyrics")
+        else:
+            lyrics_browse_id = None
+            
         if not lyrics_browse_id:
+            print("歌詞データが存在しません。")
             return
             
         lyrics_data = yt.get_lyrics(browseId=lyrics_browse_id)
@@ -57,7 +65,13 @@ def main():
                     text = str(line)
                 lrc_content += f"{format_lrc_time(start_ms)}{text}\n"
         else:
-            text_data = lyrics_data.get("lyrics", "") if isinstance(lyrics_data, dict) else str(lyrics_data)
+            # 辞書型から安全に値を取り出すように修正
+            text_data = ""
+            if isinstance(lyrics_data, dict):
+                text_data = lyrics_data.get("lyrics", "")
+            else:
+                text_data = str(lyrics_data)
+                
             lines = [l.strip() for l in str(text_data).split("\n") if l.strip()]
             for i, line_text in enumerate(lines):
                 start_ms = (i * 3000) + delay_ms
@@ -86,12 +100,12 @@ def main():
 </body>
 </html>"""
         
-        # 既存のindex.htmlを壊さないように、結果は result.html に書き出す
         with open("result.html", "w", encoding="utf-8") as f:
             f.write(html_template)
+        print("result.html の生成に成功しました。")
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"実行エラー: {e}")
 
 if __name__ == "__main__":
     main()
