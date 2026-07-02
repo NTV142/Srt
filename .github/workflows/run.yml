@@ -1,4 +1,4 @@
-name: Generate SRT from YouTube Music
+name: Generate LRC from YouTube Music
 
 on:
   workflow_dispatch:
@@ -7,6 +7,10 @@ on:
         description: 'YouTube MusicのURL、またはビデオID'
         required: true
         default: 'https://music.youtube.com/watch?v=F8e2ohz1Jwg&si=DyQmP_DJHnm6joj9'
+      delay_sec:
+        description: '遅延させる秒数（例: 24、マイナスも可）'
+        required: true
+        default: '24'
 
 permissions:
   contents: write
@@ -33,19 +37,18 @@ jobs:
     - name: Run script
       env:
         YTM_URL: ${{ github.event.inputs.ytm_url }}
+        DELAY_SEC: ${{ github.event.inputs.delay_sec }}
       run: python main.py
 
     - name: Commit and Push changes
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        
-        # ファイルが存在するか確認してから追加する（安全弁）
-        if [ -f index.html ] || [ -f lyrics.srt ]; then
-          git add index.html lyrics.srt
-          git commit -m "Update lyrics for ${{ github.event.inputs.ytm_url }}" || echo "No changes to commit"
+        if [ -f index.html ]; then
+          git add index.html
+          git commit -m "Update lyrics for ${{ github.event.inputs.ytm_url }} with delay ${{ github.event.inputs.delay_sec }}s" || echo "No changes to commit"
           git push origin HEAD:${{ github.ref }}
         else
-          echo "【警告】HTMLやSRTファイルが生成されていません。Python側で処理が失敗している可能性があります。"
+          echo "Error: index.html was not generated."
           exit 1
         fi
