@@ -1,1 +1,43 @@
 
+name: Generate SRT from YouTube Music
+
+on:
+  workflow_dispatch:
+    inputs:
+      ytm_url:
+        description: 'YouTube MusicのURL、またはビデオID'
+        required: true
+        default: 'https://music.youtube.com/watch?v=F8e2ohz1Jwg&si=DyQmP_DJHnm6joj9'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install ytmusicapi
+
+    - name: Run script
+      env:
+        YTM_URL: ${{ github.event.inputs.ytm_url }}
+      run: python main.py
+
+    - name: Commit and Push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add index.html lyrics.srt
+        git commit -m "Update lyrics for ${{ github.event.inputs.ytm_url }}" || echo "No changes to commit"
+        git push
