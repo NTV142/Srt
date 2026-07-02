@@ -35,13 +35,12 @@ def main():
         print("ビデオIDが不正です。")
         return
 
-    print(f"Target Video ID: {video_id}")
+    print(f"Target Video ID: {video_id} (Delay: {delay_sec_str}s)")
     yt = YTMusic()
     
     try:
         watch_playlist = yt.get_watch_playlist(videoId=video_id)
         
-        # 確実に辞書型データからキーを安全に取得
         if isinstance(watch_playlist, dict):
             lyrics_browse_id = watch_playlist.get("lyrics")
         else:
@@ -54,28 +53,29 @@ def main():
         lyrics_data = yt.get_lyrics(browseId=lyrics_browse_id)
         lrc_content = ""
         
+        # 1. 本物の同期歌詞（タイムスタンプ付きリスト）の解析を最優先にする
         if isinstance(lyrics_data, dict) and "lyrics" in lyrics_data and isinstance(lyrics_data["lyrics"], list):
+            print("同期歌詞データを検出しました。本物のタイムスタンプを抽出します。")
             lines = lyrics_data["lyrics"]
             for line in lines:
                 if isinstance(line, dict):
+                    # 「本物の時間」に指定された遅延(delay_ms)をプラスする
                     start_ms = line.get("start_time", 0) + delay_ms
                     text = line.get("text", "")
-                else:
-                    start_ms = delay_ms
-                    text = str(line)
-                lrc_content += f"{format_lrc_time(start_ms)}{text}\n"
+                    lrc_content += f"{format_lrc_time(start_ms)}{text}\n"
+        
+        # 2. 同期データがどうしても取れなかった場合のみ、3秒分割（バックアップ）に流す
         else:
-            # 辞書型から安全に値を取り出すように修正
-            text_data = ""
-            if isinstance(lyrics_data, dict):
-                text_data = lyrics_data.get("lyrics", "")
-            else:
-                text_data = str(lyrics_data)
-                
+            print("同期データが見つからないため、プレーンテキストとして処理します。")
+            text_data = lyrics_data.get("lyrics", "") if isinstance(lyrics_data, dict) else str(lyrics_data)
             lines = [l.strip() for l in str(text_data).split("\n") if l.strip()]
             for i, line_text in enumerate(lines):
                 start_ms = (i * 3000) + delay_ms
                 lrc_content += f"{format_lrc_time(start_ms)}{line_text}\n"
+
+        if not lrc_content.strip():
+            print("歌詞テキストが空でした。")
+            return
 
         html_template = f"""<!DOCTYPE html>
 <html lang="ja">
