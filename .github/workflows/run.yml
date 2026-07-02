@@ -18,7 +18,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }} # 明示的にトークンを指定して認証を通す
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -39,6 +39,13 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add index.html lyrics.srt
-        git commit -m "Update lyrics for ${{ github.event.inputs.ytm_url }}" || echo "No changes to commit"
-        git push origin HEAD:${{ github.ref }} # プッシュ先を明示
+        
+        # ファイルが存在するか確認してから追加する（安全弁）
+        if [ -f index.html ] || [ -f lyrics.srt ]; then
+          git add index.html lyrics.srt
+          git commit -m "Update lyrics for ${{ github.event.inputs.ytm_url }}" || echo "No changes to commit"
+          git push origin HEAD:${{ github.ref }}
+        else
+          echo "【警告】HTMLやSRTファイルが生成されていません。Python側で処理が失敗している可能性があります。"
+          exit 1
+        fi
